@@ -1,0 +1,41 @@
+---
+
+- name: "Depolying application from Git"
+  become: true
+  hosts: all
+  vars:
+    url: https://github.com/BetcyBabu/sample-website.git
+
+  tasks:
+
+    - name: "Installing Apache, PHP, GIT"
+      yum:
+        name:
+          - httpd
+          - php
+          - git
+        state: present
+
+    - name: "Cloning from Git"
+      git:
+        repo: "{{ url }}"
+        dest: /var/website_files/
+      register: clone_status
+
+    - debug:
+        var: clone_status
+
+    - name: "Copying website files to website document root"
+      when: clone_status.changed == true
+      copy:
+        remote_src: yes
+        src: /var/website_files/
+        dest: /var/www/html/
+        owner: apache
+        group: apache
+    - name: "Restarting/Enabling Apache service"
+      when: clone_status.changed == true
+      service:
+        name: httpd
+        state: restarted
+        enabled: true
